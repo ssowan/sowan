@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام إدارة الأدوية</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .delete-button {
+            background-color: #f44336;
+        }
+        
+        .delete-button:hover {
+            background-color: #da190b;
+        }
+        
+        #medicineForm {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .search-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>نظام إدارة الأدوية</h1>
+    
+    <!-- قسم البحث -->
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="ابحث عن دواء...">
+        <select id="kidsFilter">
+            <option value="">جميع الأدوية</option>
+            <option value="yes">أدوية الأطفال</option>
+            <option value="no">أدوية البالغين</option>
+        </select>
+        <button onclick="searchMedicine()">بحث</button>
+        <button onclick="showAllMedicines()">عرض الكل</button>
+        <button onclick="showAddForm()">إضافة دواء جديد</button>
+    </div>
+
+    <!-- نموذج إضافة/تعديل دواء -->
+    <div id="medicineForm" style="display: none;">
+        <h3 id="formTitle"></h3>
+        <form id="addEditMedicineForm">
+            <div class="form-group">
+                <label for="arabicName">اسم الدواء بالعربية:</label>
+                <input type="text" id="arabicName" required>
+            </div>
+            <div class="form-group">
+                <label for="englishName">اسم الدواء بالإنجليزية:</label>
+                <input type="text" id="englishName" required>
+            </div>
+            <div class="form-group">
+                <label for="recipe">الوصفة:</label>
+                <textarea id="recipe"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="kids">للأطفال:</label>
+                <select id="kids">
+                    <option value="no">لا</option>
+                    <option value="yes">نعم</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="quantity">الكمية:</label>
+                <input type="number" id="quantity" required>
+            </div>
+            <div class="form-group">
+                <label for="expiration">تاريخ الانتهاء:</label>
+                <input type="date" id="expiration" required>
+            </div>
+            <div class="form-group">
+                <label for="price">السعر:</label>
+                <input type="number" step="0.01" id="price" required>
+            </div>
+            <div class="form-group">
+                <label for="type">النوع:</label>
+                <select id="type">
+                    <option value="Pills">حبوب</option>
+                    <option value="syrup">شراب</option>
+                    <option value="تحاميل">تحاميل</option>
+                    <option value="قطرة">قطرة</option>
+                    <option value="بخاخ">بخاخ</option>
+                    <option value="كريم">كريم</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="status">الحالة:</label>
+                <select id="status">
+                    <option value="New">جديد</option>
+                    <option value="Used">مستعمل</option>
+                </select>
+            </div>
+            <button type="submit">حفظ</button>
+            <button type="button" onclick="hideForm()">إلغاء</button>
+        </form>
+    </div>
+
+    <!-- جدول عرض الأدوية -->
+    <table id="medicinesTable">
+        <thead>
+            <tr>
+                <th>اسم الدواء بالعربية</th>
+                <th>اسم الدواء بالإنجليزية</th>
+                <th>الوصفة</th>
+                <th>للأطفال</th>
+                <th>الكمية</th>
+                <th>تاريخ الانتهاء</th>
+                <th>السعر</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody id="medicinesTableBody"></tbody>
+    </table>
+
+    <script>
+        let medicines = [
+            // أضف الأدوية هنا
+            {
+                "Arabic Name": "روكونين",
+                "Medicine name": "Roxonin",
+                "The recipe": "مسكن خافض حرارة",
+                "Kids": "no",
+                "Quantity": 1,
+                "Expiration ": "02/01/2025",
+                "Price": 12.82,
+                "Type": "Pills",
+                "New /Used": "Used"
+            },
+			 {
+  "Arabic Name": "سيفار",
+  "Medicine name": "Civar",
+  "The recipe": "الهربس الشفوي/مضادات الفيروسات",
+  "Kids": "yes",
+  "Quantity": 0,
+  "Expiration ": "01/01/2026",
+  "Price": 12.82,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "هستاكير",
+  "Medicine name": "Histacare",
+  "The recipe": "انسداد الأنف.\nالعيون الدامعة.\nالعطس.\nالحكة.",
+  "Quantity": 1,
+  "Expiration ": "09/01/2025",
+  "Price": 4.39,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اليرفين /كلورفينيرامين",
+  "Medicine name": "Allerfin ",
+  "The recipe": "الشرى الناجمة عن الحساسية أو جدري الماء.\nالزكام.\nحمى القش أو ما تسمى أيضًا بحساسية الأنف.\nالتهاب الملتحمة، والتي تتمثل بحكة واحمرار في العيون\nالتهاب الجلد التحسسي.",
+  "Quantity": 1,
+  "Expiration ": "10/01/2026",
+  "Price": 1.1,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "ايبوجيسيك معلق",
+  "Medicine name": "IBUGESIC Suspension",
+  "The recipe": "تسكين الألم الخفيف إلى المتوسط.\nتسكين ألم الدورة الشهرية، وتخفيف أعراض عسر الطمث.\nخفض الحرارة والحمى.\nتقليل الالتهاب.\nتسكين ألم الأسنان.\nعلاج التهاب المفاصل الروماتويدي.\nتخفيف أعراض التهاب المفاصل التنكسي.\nالسيطرة على ألم الإصابات للرياضيين.\nتسكين ألم الصداع والصداع النصفي.",
+  "Quantity": 1,
+  "Expiration ": "01/01/2026",
+  "Price": 1.14,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "جوسوي اكسباسم",
+  "Medicine name": "joswe Xpasm",
+  "The recipe": "التشنج المعوي ومتلازمة القولون العصبي.\nمشاكل السيطرة على الأمعاء والمثانة.\nالألم والتشنج الناجم عن حصوات الكلى وحصى المرارة.",
+  "Quantity": 1,
+  "Expiration ": "01/01/2026",
+  "Price": 0.62,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "ايريوس",
+  "Medicine name": "AERIUS",
+  "The recipe": "حمى القش.\nنزلات البرد.\nالأنفلونزا.\nالتهاب الجيوب الأنفية.",
+  "Quantity": 2,
+  "Expiration ": "03/01/2026",
+  "Price": 4.62,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اومنيسف",
+  "Medicine name": "OMNICEF",
+  "The recipe": "الإلتهاب الرئوي أو ذات الرئة (غير المكتسبة أو متعلقة بالمستشفى).\nالتهاب الجيوب الفكية العلوية الحاد التهاب البلعوم.\nالتهاب اللوزتين في حالات إلتهاب القصبات المزمن (زيادة في شدة المرض، أو في حدة أعراضه).\nالتهاب الأذن الوسطى الحاد.\nالالتهابات الجلدية المختلفة وغيرها.",
+  "Quantity": 2,
+  "Expiration ": "05/01/2025",
+  "Price": 22.36,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "باديفاست",
+  "Medicine name": "Pediafast",
+  "The recipe": "تخفيف الحكة المرتبطة بعدد من الالتهابات الجلدية.\nلدغ الحشرات.\nالحروق.\nالحكة بسبب رد فعل تحسسي.\nالتهاب الأنف المزمن.\nنزلات البرد والأنلفونزا.\nحساسية الجهاز التنفسي العلوي.\nالشرى.\nحمى القش.\nالحساسية الناتجة عن الطعام أو الأدوية.\nالحد من الحكة مع أمراض الجلد البركانية مثل جدري الماء.\nعلاج مساعد في حالات الاكزيما.",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "05/01/2025",
+  "Price": 2.68,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "زوماكس",
+  "Medicine name": "Zomax",
+  "The recipe": "التهاب الأذن الوسطى.\nالتهاب اللوزتين.\nعدوى الجهاز التنفسي العلوي (مثل التهابات القصبات الهوائية، التهاب الأنف، التهاب البلعوم وغيرها).\nعدوى الجلد وأجزائه.\nبعض أنواع ذات الرئة.\nمرض الحوض الالتهابي.\nالتهاب الإحليل (بالإنجليزية: Urethritis) المنقول جنسيًا.\nالتهاب عنق الرحم المنقول جنسياً.\nنوبات الانسداد الرئوي المزمن.\nالتهاب الجيوب الحاد البكتيري.",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "08/01/2025",
+  "Price": 4.86,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "دومبيرايد",
+  "Medicine name": "DOMPERIDE",
+  "The recipe": "تخفيف أعراض التهاب المعدة المزمن.\nتخفيف أعراض خزل المعدة المرافق لمرض السكري.\nالسيطرة على حالات الغثيان والقيء المصاحبة لعلاجات مرض باركنسون.",
+  "Kids": "no",
+  "Quantity": 1,
+  "Expiration ": "12/01/2025",
+  "Price": 1.86,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اموكلان",
+  "Medicine name": "Amoclan",
+  "The recipe": "مضاد حيوي علاج التهابات الجهاز التنفسي السفلي.\nعلاج التهاب الأذن الوسطى.\nعلاج التهاب الجيوب الأنفية.\nعلاج التهاب الجهاز البولي الجرثومي.\nعلاج الالتهابات الجلدية.\nعلاج التهابات الفم واللثة البكتيرية.\nعلاج الالتهابات التي تسببها السلالات المنتجة لبيتا لاكتاماز، مثل جراثيم الأشريكية القولونية، والمستدمية النزلية، والمكورات العنقودية الذهبية.\nالوقاية من الإصابة بالعدوى نتيجة الجراحة الملوثة.",
+  "Kids": "yes",
+  "Quantity": 2,
+  "Expiration ": "03/01/2026",
+  "Price": 8.74,
+  "Type": "syrup",
+  "New /Used": "New"
+ },
+ {
+  "Arabic Name": "بروسبان",
+  "Medicine name": "PROSPAN",
+  "The recipe": "تحميل مضاد للسعال",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "05/01/2026",
+  "Price": 2.42,
+  "Type": "تحاميل",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "توبركس",
+  "Medicine name": "TOBREX",
+  "The recipe": "قطره مضاد حيوي\nيستعمل في إصابات العين مثل التهاب الملتحمة.\nالتهاب القرنية والأجزاء المحيطة المصابة والتي سببها البكتيريا السريعة التأثيرِ.\nيمكن استخدامه كواقي بعد الجراحةِ.",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "01/01/2025",
+  "Price": 2.71,
+  "Type": "قطرة",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "توبرادكس",
+  "Medicine name": "tobradex",
+  "The recipe": "مضاد حيوي في الاذن\n التهاب الملتحمة.\nالتهاب القرنية.\nالتهاب الجزء الأمامي من كرة العين.\nالتهاب العنبية المزمن.",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "02/01/2025",
+  "Price": 2.53,
+  "Type": "قطرة",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اوتريفين",
+  "Medicine name": "Otrivin",
+  "The recipe": "بخاخ انف لعلاج نزلات البرد ",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "12/01/2025",
+  "Price": 2.23,
+  "Type": "بخاخ",
+  "New /Used": "Used"
+ },
+ {
+  "Medicine name": "Budesonide/kleva",
+  "The recipe": "بخاخ مضاد حيوي التخفيف من أعراض الجهاز التنفسي العلوي",
+  "Kids": "no",
+  "Quantity": 1,
+  "Expiration ": "07/01/2026",
+  "Price": 4.54,
+  "Type": "بخاخ",
+  "New /Used": "used"
+ },
+ {
+  "Arabic Name": "فلاتام -بلص",
+  "The recipe": "قطره فم انتفاخ البطن / للاطفال",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "11/01/2025",
+  "Price": 2.95,
+  "Type": "قطرة",
+  "New /Used": "New"
+ },
+ {
+  "Arabic Name": "بانادول",
+  "Medicine name": "Panadol",
+  "The recipe": "الام الرأس",
+  "Kids": "No",
+  "Quantity": 2,
+  "Expiration ": "12/01/2026",
+  "Price": 2.18,
+  "Type": "Pills",
+  "New /Used": "used"
+ },
+ {
+  "Arabic Name": "Broncare",
+  "Medicine name": "Panadol",
+  "The recipe": "كحه",
+  "Kids": "yes",
+  "Quantity": 3,
+  "Expiration ": "12/01/2026",
+  "Price": 4.8,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "Adol",
+  "Medicine name": "Adol 250mg",
+  "The recipe": "تحاميل خفض الحرارة",
+  "Kids": "yes",
+  "Quantity": 2,
+  "Expiration ": "07/01/2026",
+  "Price": 1.6,
+  "Type": "تحاميل",
+  "New /Used": "New"
+ },
+ {
+  "Arabic Name": "سيرين",
+  "Medicine name": "cerin",
+  "The recipe": "حساسية كبار",
+  "Kids": "no",
+  "Quantity": 2,
+  "Expiration ": "05/01/2025",
+  "Price": 2.45,
+  "Type": "Pills",
+  "New /Used": "New"
+ },
+ {
+  "Arabic Name": "ريفانين",
+  "Medicine name": "Revanin 125mg",
+  "The recipe": "تحاميل خفض الحرارة",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "11/01/2026",
+  "Price": 2.4,
+  "Type": "تحاميل",
+  "New /Used": "New"
+ },
+ {
+  "Arabic Name": "بريدون",
+  "Medicine name": "Predone",
+  "The recipe": "إضطرابات الغدد الصماء",
+  "Kids": "no",
+  "Quantity": 1,
+  "Expiration ": "06/01/2025",
+  "Price": 6.8,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اوندا",
+  "Medicine name": "ONDA",
+  "The recipe": "استفراغ الغثيان والتقيؤ",
+  "Kids": "no",
+  "Quantity": 0,
+  "Expiration ": "01/01/2026"
+ },
+ {
+  "Arabic Name": "بروفين",
+  "Medicine name": "Brufen",
+  "The recipe": "مضاد حمى مضاد للالتهاب مسكن للام",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "02/01/2026",
+  "Price": 2.1,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "ريفانين",
+  "Medicine name": "revanin 125mg",
+  "The recipe": "خافض حرارة مسكن للالم",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "03/01/2027",
+  "Price": 1.75,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "فامودار",
+  "The recipe": "للمعدة ",
+  "Kids": "no",
+  "Quantity": 1,
+  "Expiration ": "03/01/2025",
+  "Price": 2.6,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "zovirax",
+  "Medicine name": "zovirax",
+  "The recipe": "كريم هربس الشفاه",
+  "Kids": "yes",
+  "Quantity": 2,
+  "Expiration ": "01/01/2026",
+  "Price": 6.5,
+  "Type": "كريم",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "zovirax",
+  "Medicine name": "zovirax",
+  "The recipe": "شراب مضاد حيوي هربس الشفاه",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "01/01/2026",
+  "Price": 6.87,
+  "Type": "syrup",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "سينوكورت",
+  "Medicine name": "Sinocrt",
+  "The recipe": "حساسية الانف",
+  "Kids": "yes",
+  "Quantity": 1,
+  "Expiration ": "04/01/2026",
+  "Price": 4.3,
+  "Type": "بخاخ",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "ريلاكسون",
+  "Medicine name": "Relaxon",
+  "The recipe": "لشد العضلي الم الظهر المفاصل",
+  "Kids": "no",
+  "Quantity": 1,
+  "Expiration ": "09/01/2025",
+  "Price": 2.81,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "اوجمنتين",
+  "Medicine name": "Augmentin",
+  "The recipe": "مضاد حيوي علاج التهابات الجهاز التنفسي السفلي.\nعلاج التهاب الأذن الوسطى.\nعلاج التهاب الجيوب الأنفية.\nعلاج التهاب الجهاز البولي الجرثومي.\nعلاج الالتهابات الجلدية.\nعلاج التهابات الفم واللثة البكتيرية.",
+  "Kids": "No",
+  "Quantity": 1,
+  "Expiration ": "04/01/2025",
+  "Price": 6.8,
+  "Type": "Pills",
+  "New /Used": "Used"
+ },
+ {
+  "Arabic Name": "فلوراتيل",
+  "Medicine name": "Panadol",
+  "The recipe": "اسهال اطفال",
+  "Kids": "YES",
+  "Quantity": 1,
+  "Expiration ": "11/01/2025",
+  "Price": 4.2,
+  "Type": "syrup",
+  "New /Used": "new"
+ },
+ {
+  "Arabic Name": "بانثوفيل",
+  "Medicine name": "Panthophil",
+  "The recipe": "ترطيب البشرة، وعلاج الحروق، والأكزيما، والقرح، وطفح",
+  "Kids": "No",
+  "Quantity": 1,
+  "Expiration ": "06/01/2025",
+  "Price": 2.4,
+  "Type": "كريم",
+  "New /Used": "New"
+ },
+
+			
+            // أضف المزيد من الأدوية هنا
+        ];
+
+        let currentMedicineIndex = -1;
+
+        // عرض الأدوية عند تحميل الصفحة
+        displayMedicines(medicines);
+
+        // معالجة تقديم النموذج
+        document.getElementById('addEditMedicineForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newMedicine = {
+                'Arabic Name': document.getElementById('arabicName').value,
+                'Medicine name': document.getElementById('englishName').value,
+                'The recipe': document.getElementById('recipe').value,
+                'Kids': document.getElementById('kids').value,
+                'Quantity': parseInt(document.getElementById('quantity').value),
+                'Expiration ': document.getElementById('expiration').value.split('-').reverse().join('/'),
+                'Price': parseFloat(document.getElementById('price').value),
+                'Type': document.getElementById('type').value,
+                'New /Used': document.getElementById('status').value
+            };
+
+            if (currentMedicineIndex === -1) {
+                // إضافة دواء جديد
+                medicines.push(newMedicine);
+            } else {
+                // تحديث دواء موجود
+                medicines[currentMedicineIndex] = newMedicine;
+            }
+
+            hideForm();
+            displayMedicines(medicines);
+        });
+
+        // حذف دواء
+        function deleteMedicine(index) {
+            if (confirm('هل أنت متأكد من حذف هذا الدواء؟')) {
+                medicines.splice(index, 1);
+                displayMedicines(medicines);
+            }
+        }
+
+        // عرض الأدوية
+        function displayMedicines(medicines) {
+            const tableBody = document.getElementById('medicinesTableBody');
+            tableBody.innerHTML = '';
+
+            medicines.forEach((medicine, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${medicine['Arabic Name'] || ''}</td>
+                    <td>${medicine['Medicine name'] || ''}</td>
+                    <td>${medicine['The recipe'] || ''}</td>
+                    <td>${medicine['Kids'] || ''}</td>
+                    <td>${medicine['Quantity'] || ''}</td>
+                    <td>${medicine['Expiration '] || ''}</td>
+                    <td>${medicine['Price'] || ''}</td>
+                    <td>${medicine['Type'] || ''}</td>
+                    <td>${medicine['New /Used'] || ''}</td>
+                    <td>
+                        <button onclick="showEditForm(${index})">تعديل</button>
+                        <button onclick="deleteMedicine(${index})">حذف</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // عرض نموذج إضافة دواء جديد
+        function showAddForm() {
+            currentMedicineIndex = -1;
+            document.getElementById('formTitle').textContent = 'إضافة دواء جديد';
+            document.getElementById('medicineForm').style.display = 'block';
+            clearForm();
+        }
+
+        // عرض نموذج تعديل دواء
+        function showEditForm(index) {
+            currentMedicineIndex = index;
+            document.getElementById('formTitle').textContent = 'تعديل دواء';
+            document.getElementById('medicineForm').style.display = 'block';
+            
+            const medicine = medicines[index];
+            document.getElementById('arabicName').value = medicine['Arabic Name'] || '';
+            document.getElementById('englishName').value = medicine['Medicine name'] || '';
+            document.getElementById('recipe').value = medicine['The recipe'] || '';
+            document.getElementById('kids').value = medicine['Kids'] || 'no';
+            document.getElementById('quantity').value = medicine['Quantity'] || '';
+            document.getElementById('expiration').value = medicine['Expiration '].split('/').reverse().join('-');
+            document.getElementById('price').value = medicine['Price'] || '';
+            document.getElementById('type').value = medicine['Type'] || '';
+            document.getElementById('status').value = medicine['New /Used'] || '';
+        }
+
+        // إخفاء النموذج
+        function hideForm() {
+            document.getElementById('medicineForm').style.display = 'none';
+        }
+
+        // مسح حقول النموذج
+        function clearForm() {
+            document.getElementById('arabicName').value = '';
+            document.getElementById('englishName').value = '';
+            document.getElementById('recipe').value = '';
+            document.getElementById('kids').value = 'no';
+            document.getElementById('quantity').value = '';
+            document.getElementById('expiration').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('type').value = 'Pills';
+            document.getElementById('status').value = 'New';
+        }
+
+        // بحث عن دواء
+        function searchMedicine() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const kidsFilter = document.getElementById('kidsFilter').value;
+            const filteredMedicines = medicines.filter(medicine => {
+                const matchesSearch = (medicine['Arabic Name']?.toLowerCase().includes(input) ||
+                                     medicine['Medicine name']?.toLowerCase().includes(input) ||
+                                     medicine['The recipe']?.toLowerCase().includes(input));
+
+                const matchesKids = kidsFilter ? medicine['Kids']?.toLowerCase() === kidsFilter : true;
+
+                return matchesSearch && matchesKids;
+            });
+
+            displayMedicines(filteredMedicines);
+        }
+
+        // عرض جميع الأدوية
+        function showAllMedicines() {
+            displayMedicines(medicines);
+        }
+    </script>
+</body>
+</html>
